@@ -1,0 +1,30 @@
+# requirements.txt for ppseg.ipynb
+# Environment: Google Colab T4 GPU, Python 3.12
+# Note: torch, torchvision, numpy, matplotlib, Pillow, tqdm, requests, PyYAML
+# are pre-installed on Colab. Pinned versions below reflect what was active
+# in the session as seen in the install logs.
+
+pandas
+scikit-learn
+python-dotenv
+
+# ----- explicitly installed in the notebook -----
+roboflow==1.3.8
+segmentation-models-pytorch
+
+# ----- roboflow hard-pins these (as seen in install output) -----
+opencv-python-headless==4.10.0.84
+idna==3.7
+pi-heif==1.3.0
+pillow-avif-plugin==1.5.5
+filetype==1.2.0
+
+# ----- used in code cells (pre-installed on Colab but listed for portability) -----
+numpy>=1.18.5
+Pillow>=7.1.2
+matplotlib>=3.5.0
+tqdm>=4.41.0
+PyYAML>=5.3.1
+requests>=2.28.0
+pycocotools         # used in GreenhouseDataset for mask decoding
+tabulate            # used by seg_utils for results table formatting
