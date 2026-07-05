@@ -3,7 +3,6 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -30,7 +29,6 @@ def train(
     binary: bool = False,
     criterion: Optional[nn.Module] = None,
     optimizer: Optional[torch.optim.Optimizer] = None,
-    scheduler=None,
     class_weights: Optional[torch.Tensor] = None,
     save_path: Optional[str] = "best_model.pth",
     device: Optional[torch.device] = None,
@@ -51,8 +49,6 @@ def train(
         Defaults to BCELoss (binary) or CrossEntropyLoss (multi-class).
     optimizer : Optimizer or None
         Defaults to Adam.
-    scheduler : LR scheduler or None
-        Defaults to ReduceLROnPlateau(patience=3, factor=0.5).
     class_weights : torch.Tensor or None
         For CrossEntropyLoss; ignored in binary mode.
     save_path : str or None
@@ -73,8 +69,6 @@ def train(
         criterion = _default_criterion(binary, class_weights, device)
     if optimizer is None:
         optimizer = Adam(model.parameters(), lr=lr)
-    if scheduler is None:
-        scheduler = ReduceLROnPlateau(optimizer, mode="min", patience=3, factor=0.5)
 
     train_losses, valid_losses = [], []
     best_valid_loss = float("inf")
@@ -105,8 +99,6 @@ def train(
                 running_loss += loss.item()
         valid_loss = running_loss / len(valid_loader)
         valid_losses.append(valid_loss)
-
-        scheduler.step(valid_loss)
 
         if save_path is not None and valid_loss < best_valid_loss:
             best_valid_loss = valid_loss

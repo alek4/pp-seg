@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 import numpy as np
@@ -130,4 +131,96 @@ def test_model(
         "per_class_f1":        per_class_f1,
         "mean_f1":             mean_f1,
         "class_labels":        class_labels,
+    }
+
+
+def find_optimal_threshold(
+    model: nn.Module,
+    loader: DataLoader,
+    *,
+    device: Optional[torch.device] = None,
+    n_thresholds: int = 50,
+) -> dict:
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device).eval()
+
+    all_probs = []
+    all_masks = []
+
+    with torch.no_grad():
+        for images, masks in tqdm(loader, desc="Collecting predictions"):
+            images = images.to(device)
+            probs = torch.sigmoid(model(images).squeeze(1))
+            all_probs.append(probs.cpu())
+            all_masks.append(masks.cpu())
+
+    all_probs = torch.cat(all_probs, dim=0)
+    all_masks = torch.cat(all_masks, dim=0)
+    foreground = all_masks == 1
+
+    best_iou, best_t = -1.0, 0.5
+    for t in torch.linspace(0.1, 0.9, n_thresholds):
+        pred_fg = all_probs >= t
+        tp = ( pred_fg &  foreground).sum().item()
+        fp = ( pred_fg & ~foreground).sum().item()
+        fn = (~pred_fg &  foreground).sum().item()
+        iou = tp / (tp + fp + fn + 1e-6)
+        if iou > best_iou:
+            best_iou, best_t = iou, t.item()
+
+    print(f"Optimal threshold: {best_t:.3f}  (foreground IoU: {best_iou:.4f})")
+    return {"threshold": best_t, "foreground_iou": best_iou}
+
+
+def measure_inference_time(
+    model: nn.Module,
+    loader: DataLoader,
+    *,
+    device: Optional[torch.device] = None,
+    n_runs: int = 100,
+    n_warmup: int = 10,
+) -> dict:
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = model.to(device).eval()
+
+    # grab one batch — data loading is not part of the measurement
+    images, _ = next(iter(loader))
+    images = images.to(device)
+    batch_size = images.shape[0]
+
+    # warmup: burns off CUDA kernel compilation on first use
+    with torch.no_grad():
+        for _ in range(n_warmup):
+            model(images)
+
+    times = []
+    with torch.no_grad():
+        for _ in range(n_runs):
+            # synchronize before and after so we time GPU work, not kernel launch
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            t0 = time.perf_counter()
+            model(images)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            times.append(time.perf_counter() - t0)
+
+    times_ms = np.array(times) * 1000
+    mean_batch = float(np.mean(times_ms))
+    std_batch  = float(np.std(times_ms))
+    mean_image = mean_batch / batch_size
+
+    print(f"Inference time ({n_runs} runs, batch_size={batch_size}, device={device})")
+    print(f"  per batch : {mean_batch:.2f} ± {std_batch:.2f} ms")
+    print(f"  per image : {mean_image:.2f} ms")
+
+    return {
+        "mean_ms_per_batch": mean_batch,
+        "std_ms_per_batch":  std_batch,
+        "mean_ms_per_image": mean_image,
+        "batch_size":        batch_size,
     }
