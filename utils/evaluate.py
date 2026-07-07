@@ -224,3 +224,51 @@ def measure_inference_time(
         "mean_ms_per_image": mean_image,
         "batch_size":        batch_size,
     }
+
+
+def evaluate_checkpoint(
+    model: nn.Module,
+    checkpoint_path: str,
+    valid_loader: DataLoader,
+    test_loader: DataLoader,
+    *,
+    title: str = "Model",
+    n_samples: int = 4,
+    device: Optional[torch.device] = None,
+) -> dict:
+    """Standard evaluation protocol for a trained binary checkpoint.
+
+    Loads the weights, tunes the decision threshold on valid, computes
+    test metrics at that threshold, measures parameter count and
+    inference time, and plots predictions (at the tuned threshold) and
+    per-class metrics.
+
+    Returns the test_model dict extended with threshold, n_params and
+    the measure_inference_time entries.
+    """
+    from .viz import plot_metrics, plot_predictions  # deferred: viz imports from this module
+
+    if device is None:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    model = model.to(device).eval()
+
+    threshold = find_optimal_threshold(model, valid_loader, device=device)["threshold"]
+    metrics = test_model(model, test_loader, binary=True, threshold=threshold, device=device)
+
+    n_params = sum(p.numel() for p in model.parameters())
+    print(f"Parameters: {n_params:,}")
+    timing = measure_inference_time(model, test_loader, device=device)
+
+    plot_predictions(
+        model, test_loader,
+        binary=True,
+        threshold=threshold,
+        n_samples=n_samples,
+        device=device,
+        title=f"{title} – Predictions vs Ground Truth",
+    )
+    plot_metrics(metrics, title=f"{title} – Test Metrics")
+
+    return {**metrics, "threshold": threshold, "n_params": n_params, **timing}

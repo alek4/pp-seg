@@ -30,7 +30,7 @@ def train(
     criterion: Optional[nn.Module] = None,
     optimizer: Optional[torch.optim.Optimizer] = None,
     class_weights: Optional[torch.Tensor] = None,
-    save_path: Optional[str] = "best_model.pth",
+    save_path: Optional[str] = None,
     device: Optional[torch.device] = None,
 ) -> dict:
     """Train a segmentation model with validation and checkpointing.
