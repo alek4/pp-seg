@@ -4,8 +4,8 @@ Binary plant segmentation in a greenhouse setting.
 
 ## Dataset
 
-Dataset collected in a greenhouse, annotated and exported from Roboflow in
-COCO segmentation format (`greenhouse-3-1/`). After removing unannotated images: 695 train / 208 valid / 106 test. All images resized to 512x512. Foreground covers only ~2.5% of pixels, which drives most of the design choices (loss, metrics).
+Public dataset from Roboflow, collected in a greenhouse and annotated in COCO
+segmentation format (`greenhouse-3-1/`). After removing unannotated images: 695 train / 208 valid / 106 test. All images resized to 512x512. Foreground covers only ~2.5% of pixels, which drives most of the design choices (loss, metrics).
 
 ## Approach
 
