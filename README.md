@@ -1,6 +1,6 @@
 # pp-seg
 
-Binary plant segmentation in a greenhouse setting.
+**P**otted **P**lants **Seg**mentation - binary plant segmentation in a greenhouse setting.
 
 ## Dataset
 
@@ -43,3 +43,9 @@ Test-set plant IoU, threshold tuned on the validation split:
 
 Sections of the notebook are independent: each one creates its own dataloaders, so you can run any section from a fresh kernel without running the ones before it.
 Training cells are the slow part; every trained model is evaluated from its checkpoint, so evaluation cells can be re-run without retraining.
+
+## Future work
+
+- Improve generalization with a bigger dataset covering different plant species
+- Revisit the pretrained route, which should generalize better with more varied data
+- Build a new dataset and fine-tune the model on pseudo-labels generated with SAM 3
